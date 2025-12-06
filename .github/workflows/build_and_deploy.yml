@@ -43,7 +43,7 @@ jobs:
         shutil.rmtree("model", ignore_errors=True)
 
         # Télécharger le modèle depuis MLflow vers le dossier local "model"
-        mlflow.pyfunc.load_model(model_uri=model_uri, dst_path=model)
+        model = mlflow.pyfunc.load_model(model_uri=model_uri)
 
         EOF
 
