@@ -98,4 +98,4 @@ jobs:
       run: docker build -f docker/Dockerfile -t hf.co/${{ secrets.HF_USERNAME }}/api-prediction:latest -f docker/Dockerfile .
 
     - name: Push image
-      run: docker push hf.co/${{ secrets.HF_USERNAME }}/api-prediction:latest
+      run: docker push registry.hf.space/${{ secrets.HF_USERNAME }}/api-prediction:latest
