@@ -92,7 +92,7 @@ jobs:
 
     - name: Login HuggingFace registry
       run: |
-        echo "${{ secrets.HF_TOKEN }}" | docker login --username ${{ secrets.HF_USERNAME }} --password-stdin hf.co
+        echo "${{ secrets.HF_TOKEN }}" | docker login -u ${{ secrets.HF_USERNAME }} --password-stdin registry.hf.space
 
     - name: Build image
       run: docker build -f docker/Dockerfile -t hf.co/${{ secrets.HF_USERNAME }}/api-prediction:latest -f docker/Dockerfile .
