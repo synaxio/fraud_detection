@@ -37,13 +37,13 @@ jobs:
         exp = mlflow.get_experiment_by_name(EXPERIMENT_NAME)
         runs = mlflow.search_runs(exp.experiment_id, order_by=["start_time DESC"])
         last_run_id = runs.iloc[0]["run_id"]
-        model_uri = f"runs:/{last_run_id}/model"
+        model_uri = f"runs:/{last_run_id}/{EXPERIMENT_NAME}"
 
         # Supprimer le dossier précédent
         shutil.rmtree("model", ignore_errors=True)
 
-        # Télécharger le modèle depuis MLflow vers le dossier local "model" ? EXPERIMENT_NAME ?
-        mlflow.pyfunc.load_model(model_uri=model_uri, dst_path=EXPERIMENT_NAME)
+        # Télécharger le modèle depuis MLflow vers le dossier local "model"
+        mlflow.pyfunc.load_model(model_uri=model_uri, dst_path=model)
 
         EOF
 
