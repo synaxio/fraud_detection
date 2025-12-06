@@ -31,13 +31,20 @@ jobs:
       run: |
         python - <<EOF
         import mlflow, os, shutil
+
         EXPERIMENT_NAME = os.environ["EXPERIMENT_NAME"]
+
         exp = mlflow.get_experiment_by_name(EXPERIMENT_NAME)
         runs = mlflow.search_runs(exp.experiment_id, order_by=["start_time DESC"])
         last_run_id = runs.iloc[0]["run_id"]
         model_uri = f"runs:/{last_run_id}/model"
+
+        # Supprimer le dossier précédent
         shutil.rmtree("model", ignore_errors=True)
-        mlflow.pyfunc.save_model("model", model_uri=model_uri)
+
+        # Télécharger le modèle depuis MLflow vers le dossier local "model"
+        mlflow.pyfunc.load_model(model_uri=model_uri, dst_path="model")
+
         EOF
 
     - name: Login HuggingFace registry
