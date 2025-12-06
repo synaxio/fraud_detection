@@ -31,6 +31,7 @@ jobs:
       run: |
         python - <<EOF
         import mlflow, os, shutil
+        EXPERIMENT_NAME = os.environ["EXPERIMENT_NAME"]
         exp = mlflow.get_experiment_by_name(EXPERIMENT_NAME)
         runs = mlflow.search_runs(exp.experiment_id, order_by=["start_time DESC"])
         last_run_id = runs.iloc[0]["run_id"]
