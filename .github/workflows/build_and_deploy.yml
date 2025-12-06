@@ -27,12 +27,12 @@ jobs:
       env:
         MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
         MLFLOW_TRACKING_TOKEN: ${{ secrets.MLFLOW_TRACKING_TOKEN }}
-        EXPERIMENT_NAME: ${{ secrets.EXPERIMENT_NAME }}
+        #EXPERIMENT_NAME: ${{ secrets.EXPERIMENT_NAME }}
       run: |
         python - <<EOF
         import mlflow, os, shutil
 
-        EXPERIMENT_NAME = os.getenv("EXPERIMENT_NAME")
+        EXPERIMENT_NAME = 'fraud_detector' #os.getenv("EXPERIMENT_NAME")
 
         exp = mlflow.get_experiment_by_name(EXPERIMENT_NAME)
         exp_id = exp.experiment_id
