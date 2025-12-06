@@ -89,6 +89,52 @@ jobs:
             )
             print(f"All artifacts downloaded to: {local_path}")
         EOF
+    
+    - name: Initialize HuggingFace Space if needed
+      env:
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      run: |
+        pip install huggingface_hub
+        
+        python - <<EOF
+        from huggingface_hub import HfApi
+        
+        api = HfApi(token="${{ secrets.HF_TOKEN }}")
+        repo_id = "${{ secrets.HF_USERNAME }}/api-prediction"
+        
+        try:
+            # Vérifier si le README existe
+            api.hf_hub_download(repo_id=repo_id, filename="README.md", repo_type="space")
+            print("Space déjà initialisé")
+        except:
+            print("Initialisation du Space...")
+            # Créer le README.md initial
+            readme_content = """---
+        title: API Prediction
+        emoji: 🔮
+        colorFrom: blue
+        colorTo: green
+        sdk: docker
+        app_port: 7860
+        pinned: false
+        ---
+        
+        # API Prediction
+        
+        API de prédiction déployée automatiquement via GitHub Actions.
+        """
+            api.upload_file(
+                path_or_fileobj=readme_content.encode(),
+                path_in_repo="README.md",
+                repo_id=repo_id,
+                repo_type="space",
+                token="${{ secrets.HF_TOKEN }}"
+            )
+            print("Space initialisé avec succès")
+        EOF
+    
+    - name: Debug username
+      run: echo "Username starts with $(echo '${{ secrets.HF_USERNAME }}' | cut -c1-2)"
 
     - name: Login HuggingFace registry
       run: |
@@ -97,8 +143,8 @@ jobs:
     - name: Build image
       run: |
         # Vérifiez que le nom correspond EXACTEMENT à votre Space existant
-        docker build -t registry.hf.space/${{ secrets.HF_USERNAME }}/api-prediction:latest -f docker/Dockerfile .
+        docker build -t registry.hf.space/${{ secrets.HF_USERNAME }}/api-prediction -f docker/Dockerfile .
 
     - name: Push image
       run: |
-        docker push registry.hf.space/${{ secrets.HF_USERNAME }}/api-prediction:latest
+        docker push registry.hf.space/${{ secrets.HF_USERNAME }}/api-prediction
