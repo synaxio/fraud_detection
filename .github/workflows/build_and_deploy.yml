@@ -94,8 +94,9 @@ jobs:
       run: |
         echo "${{ secrets.HF_TOKEN }}" | docker login -u ${{ secrets.HF_USERNAME }} --password-stdin registry.hf.space
 
+
     - name: Build image
-      run: docker build -f docker/Dockerfile -t hf.co/${{ secrets.HF_USERNAME }}/api-prediction:latest -f docker/Dockerfile .
+      run: docker build -t registry.hf.space/${{ secrets.HF_USERNAME }}/api-prediction:latest -f docker/Dockerfile .
 
     - name: Push image
       run: docker push registry.hf.space/${{ secrets.HF_USERNAME }}/api-prediction:latest
