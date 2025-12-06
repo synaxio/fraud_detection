@@ -1,0 +1,48 @@
+name: Build and Deploy to HuggingFace
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout repo
+      uses: actions/checkout@v3
+
+    - name: Install Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+
+    - name: Install MLflow + boto3
+      run: pip install mlflow boto3
+
+    - name: Download latest MLflow model
+      env:
+        MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+        MLFLOW_TRACKING_TOKEN: ${{ secrets.MLFLOW_TRACKING_TOKEN }}
+        EXPERIMENT_NAME: ${{ secrets.EXPERIMENT_NAME }}
+      run: |
+        python - <<EOF
+        import mlflow, os, shutil
+        exp = mlflow.get_experiment_by_name(EXPERIMENT_NAME)
+        runs = mlflow.search_runs(exp.experiment_id, order_by=["start_time DESC"])
+        last_run_id = runs.iloc[0]["run_id"]
+        model_uri = f"runs:/{last_run_id}/model"
+        shutil.rmtree("model", ignore_errors=True)
+        mlflow.pyfunc.save_model("model", model_uri=model_uri)
+        EOF
+
+    - name: Login HuggingFace registry
+      run: |
+        echo "${{ secrets.HF_TOKEN }}" | docker login --username ${{ secrets.HF_USERNAME }} --password-stdin hf.co
+
+    - name: Build image
+      run: docker build -f docker/Dockerfile -t hf.co/${{ secrets.HF_USERNAME }}/api-prediction:latest -f docker/Dockerfile .
+
+    - name: Push image
+      run: docker push hf.co/${{ secrets.HF_USERNAME }}/api-prediction:latest
