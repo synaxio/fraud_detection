@@ -142,33 +142,45 @@ jobs:
         # Vérifiez que le nom correspond EXACTEMENT à votre Space existant
         docker build -t registry.hf.space/${{ secrets.HF_USERNAME }}/api-prediction -f docker/Dockerfile .
 
-
-
     - name: Deploy to HuggingFace Space
       env:
         HF_TOKEN: ${{ secrets.HF_TOKEN }}
       run: |
-        git config --global user.email "github-actions@github.com"
-        git config --global user.name "GitHub Actions"
-        
-        git clone https://oauth2:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/${{ secrets.HF_USERNAME }}/api-prediction space_repo
-        cd space_repo
-        
-        cp ../docker/Dockerfile ./Dockerfile
-        rm -rf model
-        cp -r ../model ./model
-        
-        cat > README.md <<'EOL'
-        ---
-        title: API Prediction
-        emoji: 🔮
-        colorFrom: blue
-        colorTo: green
-        sdk: docker
-        app_port: 7860
-        pinned: false
-        ---
-        EOL
+            git config --global user.email "github-actions@github.com"
+            git config --global user.name "GitHub Actions"
             
-        git add .
-        git diff --staged --quiet || (git commit -m "Deploy from GitHub Actions" && git push)
+            git clone https://oauth2:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/${{ secrets.HF_USERNAME }}/api-prediction space_repo
+            cd space_repo
+            
+            # Copier le Dockerfile
+            cp ../docker/Dockerfile ./Dockerfile
+            
+            # Copier le dossier model
+            rm -rf model
+            cp -r ../model ./model
+            
+            # Copier le dossier api (IMPORTANT!)
+            rm -rf api
+            cp -r ../api ./api
+            
+            # Copier requirements.txt
+            cp ../requirements.txt ./requirements.txt
+            
+            # Copier tout autre fichier nécessaire mentionné dans votre Dockerfile
+            # Par exemple, si vous avez un main.py, app.py, etc.
+            # cp ../main.py ./main.py
+            
+            cat > README.md <<'EOL'
+            ---
+            title: API Prediction
+            emoji: 🔮
+            colorFrom: blue
+            colorTo: green
+            sdk: docker
+            app_port: 7860
+            pinned: false
+            ---
+            EOL
+            
+            git add .
+            git diff --staged --quiet || (git commit -m "Deploy from GitHub Actions - $(date '+%Y-%m-%d %H:%M:%S')" && git push)
