@@ -133,9 +133,6 @@ jobs:
             print("Space initialisé avec succès")
         EOF
     
-    - name: Debug username
-      run: echo "Username starts with $(echo '${{ secrets.HF_USERNAME }}' | cut -c1-2)"
-
     - name: Login HuggingFace registry
       run: |
         echo "${{ secrets.HF_TOKEN }}" | docker login -u ${{ secrets.HF_USERNAME }} --password-stdin registry.hf.space
@@ -145,6 +142,33 @@ jobs:
         # Vérifiez que le nom correspond EXACTEMENT à votre Space existant
         docker build -t registry.hf.space/${{ secrets.HF_USERNAME }}/api-prediction -f docker/Dockerfile .
 
-    - name: Push image
+
+
+    - name: Deploy to HuggingFace Space
+      env:
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
       run: |
-        docker push registry.hf.space/${{ secrets.HF_USERNAME }}/api-prediction
+        git config --global user.email "github-actions@github.com"
+        git config --global user.name "GitHub Actions"
+        
+        git clone https://oauth2:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/${{ secrets.HF_USERNAME }}/api-prediction space_repo
+        cd space_repo
+        
+        cp ../docker/Dockerfile ./Dockerfile
+        rm -rf model
+        cp -r ../model ./model
+        
+        cat > README.md <<'EOL'
+        ---
+        title: API Prediction
+        emoji: 🔮
+        colorFrom: blue
+        colorTo: green
+        sdk: docker
+        app_port: 7860
+        pinned: false
+        ---
+        EOL
+            
+        git add .
+        git diff --staged --quiet || (git commit -m "Deploy from GitHub Actions" && git push)
