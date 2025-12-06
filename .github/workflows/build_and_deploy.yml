@@ -56,7 +56,7 @@ jobs:
         for a in artifacts:
             print(a.path)
 
-        model_uri = f"runs:/{last_run_id}/{EXPERIMENT_NAME}" 
+        model_uri = f"runs:/{last_run_id}/{EXPERIMENT_NAME}/code" 
 
         print(f"Model URI: {model_uri}")
 
