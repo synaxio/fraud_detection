@@ -52,9 +52,6 @@ jobs:
 
         from mlflow.tracking import MlflowClient
         client = MlflowClient()
-        artifacts = client.list_artifacts(last_run_id)
-        for a in artifacts:
-            print(a.path)
 
         model_uri = f"runs:/{last_run_id}/{EXPERIMENT_NAME}/code" 
 
@@ -64,9 +61,33 @@ jobs:
         shutil.rmtree("model", ignore_errors=True)
         print("Old model directory removed.")
 
-        # Télécharger le modèle depuis MLflow vers le dossier local "model"
-        mlflow.pyfunc.load_model(model_uri=model_uri, dst_path= "model")
-
+        # Télécharger les artifacts (ajustez le chemin selon vos artifacts)
+            # Option 1 : Si votre modèle est enregistré comme "model"
+            artifact_path = "model"
+            
+            # Option 2 : Si c'est sous un autre nom, utilisez celui affiché ci-dessus
+            # artifact_path = "fraud_detector"  # ou autre selon votre log
+            
+            try:
+                model_uri = f"runs:/{last_run_id}/{artifact_path}"
+                print(f"Downloading from: {model_uri}")
+                
+                # Télécharger les artifacts sur disque
+                local_path = mlflow.artifacts.download_artifacts(
+                    artifact_uri=model_uri,
+                    dst_path="model"
+                )
+                print(f"Model downloaded to: {local_path}")
+                
+            except Exception as e:
+                print(f"Error with artifact_path '{artifact_path}': {e}")
+                print("Trying to download all artifacts...")
+                # Alternative : télécharger tous les artifacts du run
+                local_path = mlflow.artifacts.download_artifacts(
+                    run_id=last_run_id,
+                    dst_path="model"
+                )
+                print(f"All artifacts downloaded to: {local_path}")
         EOF
 
     - name: Login HuggingFace registry
