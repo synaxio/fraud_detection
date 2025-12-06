@@ -37,7 +37,7 @@ jobs:
         exp = mlflow.get_experiment_by_name(EXPERIMENT_NAME)
         exp_id = exp.experiment_id
         #runs = mlflow.search_runs(exp.experiment_id, order_by=["start_time DESC"])
-        runs = mlflow.search_runs(exp_ids=[exp_id], 
+        runs = mlflow.search_runs(exp_id, 
                                 filter_string="attributes.status = 'FINISHED'",        
                                 order_by=["attributes.start_time DESC"],  # du plus récent au plus ancien
                                 max_results=1
