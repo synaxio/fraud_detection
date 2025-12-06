@@ -32,7 +32,7 @@ jobs:
         python - <<EOF
         import mlflow, os, shutil
 
-        EXPERIMENT_NAME = os.environ("EXPERIMENT_NAME")
+        EXPERIMENT_NAME = os.getenv("EXPERIMENT_NAME")
 
         exp = mlflow.get_experiment_by_name(EXPERIMENT_NAME)
         exp_id = exp.experiment_id
