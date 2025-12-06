@@ -44,7 +44,12 @@ jobs:
                                 )
         #last_run_id = runs.iloc[0]["run_id"]
         last_run_id = runs.iloc[0].run_id
+        # Lister tous les artifacts du run
+        artifacts = client.list_artifacts(last_run_id)
+        for a in artifacts:
+            print(a.path)
         model_uri = f"runs:/{last_run_id}/{EXPERIMENT_NAME}"
+                    
 
         # Supprimer le dossier précédent
         shutil.rmtree("model", ignore_errors=True)
