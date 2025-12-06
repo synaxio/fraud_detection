@@ -52,12 +52,11 @@ jobs:
 
         model_uri = f"runs:/{last_run_id}/{EXPERIMENT_NAME}" 
 
-        print(f"Downloading model from run_id: {last_run_id}")
         print(f"Model URI: {model_uri}")
-
 
         # Supprimer le dossier précédent
         shutil.rmtree("model", ignore_errors=True)
+        print("Old model directory removed.")
 
         # Télécharger le modèle depuis MLflow vers le dossier local "model"
         mlflow.pyfunc.load_model(model_uri=model_uri, dst_path= "model")
