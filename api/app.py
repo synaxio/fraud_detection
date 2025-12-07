@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 import pandas as pd
 from pydantic import BaseModel
 from .model_loader import load_model
+from io import StringIO
 
 app = FastAPI(
     title="Fraud Detection API",
@@ -37,8 +38,10 @@ async def health():
 def predict(payload: Payload):
     """Endpoint de prédiction."""
     try:
-        df = pd.DataFrame(payload.data)
+        print(payload.data)
+        df = pd.read_json(StringIO(payload.data))
+        #df = pd.DataFrame(payload.data)
         preds = model.predict(df)
-        return {"predictions": preds.tolist()}
+        return {"predictions": preds.to_json()}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
