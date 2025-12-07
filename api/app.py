@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 import pandas as pd
 from pydantic import BaseModel
-from model_loader import load_model
+from .model_loader import load_model
 
 app = FastAPI()
 

@@ -165,8 +165,6 @@ jobs:
             
             # Copier requirements.txt
             cp ../requirements.txt ./requirements.txt
-
-            cp ../api/model_loader.py ./model_loader.py
             
             # Copier tout autre fichier nécessaire mentionné dans votre Dockerfile
             # Par exemple, si vous avez un main.py, app.py, etc.
