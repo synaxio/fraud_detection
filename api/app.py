@@ -41,6 +41,7 @@ def predict(data: List[dict]):
     try:
         df = pd.DataFrame(data)
         preds = model.predict(df)
-        return {"predictions": preds.to_dict(orient='records')}
+        #return {"predictions": preds.to_dict(orient='records')}
+        return {"predictions": preds.tolist()}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
