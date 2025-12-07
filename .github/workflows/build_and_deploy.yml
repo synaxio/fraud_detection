@@ -161,6 +161,9 @@ jobs:
           app_port: 7860
           pinned: false
           ---
+          
+          Last deployed: $(date '+%Y-%m-%d %H:%M:%S UTC')
+          
           EOL
           
           git add .
