@@ -69,7 +69,7 @@ if __name__ == "__main__":
     parser.add_argument("--class_weight", default={0: 1, 1: 1})
     args = parser.parse_args([])
 
-    print('- Training Model')   
+    print('- Model hyperparams')   
     classifier = RandomForestClassifier(
         n_estimators=int(args.n_estimators),
         max_depth=None if args.max_depth is None else int(args.max_depth),
