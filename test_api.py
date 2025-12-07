@@ -5,15 +5,31 @@ load_dotenv()
 import requests
 import json
 import etl.extract as extract
+import os
+import pandas as pd
+from io import StringIO
 
 # Remplacez par votre username HuggingFace
 USERNAME = "synaxio"
 API_URL = f"https://{USERNAME}-api-prediction.hf.space"
 
+headers = {
+    "Authorization": f"Bearer {os.getenv('MLFLOW_TRACKING_TOKEN')}"
+}
+
+response = requests.post(API_URL, json={"input": "test"}, headers=headers)
+print(response.json())
+
+
+def test_formats():
+    data_json = extract.extract_and_store_raw_transactions()
+    df =pd.read_json(StringIO(data_json))
+    return df
+
 def test_health():
     """Test du endpoint de santé."""
     try:
-        response = requests.get(f"{API_URL}/health", timeout=10)
+        response = requests.get(f"{API_URL}/health", headers=headers, timeout=10)
         print(f"✓ Health check: {response.status_code}")
         print(f"  Response: {response.json()}")
         return True
@@ -31,12 +47,16 @@ def test_prediction():
         "customer_age": 35,
         # Ajoutez d'autres features selon votre modèle
     }
+
+    test_data = extract.extract_and_store_raw_transactions()
     
     try:
         response = requests.post(
             f"{API_URL}/predict",
             json=test_data,
-            headers={"Content-Type": "application/json"},
+            headers={"Content-Type": "application/json",
+                     "Authorization": f"Bearer {os.getenv('MLFLOW_TRACKING_TOKEN')}"
+                     },
             timeout=30
         )
         
@@ -85,6 +105,7 @@ def test_batch_predictions():
     except Exception as e:
         print(f"✗ Batch prediction failed: {e}")
         return False
+    
 # %%
 
 if __name__ == "__main__":
