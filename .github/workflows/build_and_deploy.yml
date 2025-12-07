@@ -31,7 +31,7 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
         MLFLOW_S3_ENDPOINT_URL: ${{ secrets.MLFLOW_S3_ENDPOINT_URL }}
-      run: |
+    run: |
         python - <<EOF
         import mlflow
         import os
@@ -55,52 +55,89 @@ jobs:
         last_run_id = runs.iloc[0]["run_id"]
         print(f"Last run ID: {last_run_id}")
 
-        # Lister les artifacts pour vérification
+        # Lister les artifacts
         client = MlflowClient()
+        
+        # Lister les artifacts à la racine
+        print("Root artifacts:")
         artifacts = client.list_artifacts(last_run_id)
-        print("Available artifacts:")
         for a in artifacts:
+            print(f"  - {a.path}")
+        
+        # Lister le contenu de fraud_detector
+        print("\nContents of fraud_detector/:")
+        fraud_artifacts = client.list_artifacts(last_run_id, "fraud_detector")
+        for a in fraud_artifacts:
             print(f"  - {a.path}")
 
         # Supprimer le dossier précédent
         shutil.rmtree("model", ignore_errors=True)
-        print("Old model directory removed.")
+        print("\nOld model directory removed.")
 
-        # Télécharger depuis le dossier 'code'
-        model_uri = f"runs:/{last_run_id}/code"
+        # Télécharger fraud_detector/code
+        model_uri = f"runs:/{last_run_id}/fraud_detector/code"
         print(f"Downloading from: {model_uri}")
         
-        local_path = mlflow.artifacts.download_artifacts(
-            artifact_uri=model_uri,
-            dst_path="."
-        )
-        
-        print(f"Downloaded to: {local_path}")
-        
-        # Renommer 'code' en 'model' pour correspondre à votre app
-        if os.path.exists("code"):
-            if os.path.exists("model"):
-                shutil.rmtree("model")
-            shutil.move("code", "model")
-            print("Renamed 'code' to 'model'")
+        try:
+            local_path = mlflow.artifacts.download_artifacts(
+                artifact_uri=model_uri,
+                dst_path="."
+            )
+            print(f"Downloaded to: {local_path}")
+            
+            # Le chemin téléchargé sera probablement "fraud_detector/code"
+            # On doit le déplacer vers "model"
+            if os.path.exists("fraud_detector/code"):
+                shutil.move("fraud_detector/code", "model")
+                shutil.rmtree("fraud_detector", ignore_errors=True)
+                print("Moved fraud_detector/code to model/")
+            elif os.path.exists("code"):
+                shutil.move("code", "model")
+                print("Moved code to model/")
+            
+        except Exception as e:
+            print(f"Error downloading fraud_detector/code: {e}")
+            print("Trying to download entire fraud_detector folder...")
+            
+            # Plan B : télécharger tout fraud_detector
+            model_uri = f"runs:/{last_run_id}/fraud_detector"
+            local_path = mlflow.artifacts.download_artifacts(
+                artifact_uri=model_uri,
+                dst_path="."
+            )
+            
+            # Déplacer fraud_detector/code vers model
+            if os.path.exists("fraud_detector/code"):
+                shutil.move("fraud_detector/code", "model")
+                shutil.rmtree("fraud_detector", ignore_errors=True)
+            elif os.path.exists("fraud_detector"):
+                shutil.move("fraud_detector", "model")
         
         # Vérifier que MLmodel existe
         if not os.path.exists("model/MLmodel"):
+            print("\n❌ MLmodel file not found!")
+            print("Contents of current directory:")
+            for item in os.listdir("."):
+                print(f"  - {item}")
+                if os.path.isdir(item):
+                    print(f"    Contents of {item}:")
+                    for subitem in os.listdir(item)[:5]:
+                        print(f"      - {subitem}")
             raise Exception("MLmodel file not found in downloaded artifacts!")
         
-        print("✓ Model downloaded successfully")
+        print("\n✓ Model downloaded successfully")
         
         # Afficher la structure
-        print("\n=== Model structure ===")
+        print("\n=== Final model structure ===")
         for root, dirs, files in os.walk("model"):
             level = root.replace("model", "").count(os.sep)
             indent = " " * 2 * level
             print(f"{indent}{os.path.basename(root)}/")
             subindent = " " * 2 * (level + 1)
-            for file in files[:5]:  # Limiter à 5 fichiers par dossier
+            for file in files[:8]:
                 print(f"{subindent}{file}")
-            if len(files) > 5:
-                print(f"{subindent}... and {len(files) - 5} more files")
+            if len(files) > 8:
+                print(f"{subindent}... and {len(files) - 8} more files")
         
         EOF
     
