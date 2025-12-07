@@ -36,6 +36,12 @@ jobs:
           echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
           echo "AWS_DEFAULT_REGION=${{ secrets.AWS_DEFAULT_REGION }}" >> $GITHUB_ENV
           echo "MLFLOW_S3_ENDPOINT_URL=${{ secrets.MLFLOW_S3_ENDPOINT_URL }}" >> $GITHUB_ENV
+          echo "API_URL=${{ secrets.API_URL }}" >> $GITHUB_ENV
+          echo "EXPERIMENT_NAME=${{ secrets.MLFLOW_S3_ENDPOINT_URL }}" >> $GITHUB_ENV
+          echo "BUCKET_NAME=${{ secrets.BUCKET_NAME }}" >> $GITHUB_ENV
+          echo "ARTIFACT_ROOT=${{ secrets.ARTIFACT_ROOT }}" >> $GITHUB_ENV
+          echo "BACKEND_STORE_URI=${{ secrets.BACKEND_STORE_URI }}" >> $GITHUB_ENV
+
 
       # 4️⃣ Exécuter les tests
       - name: Run pytest
