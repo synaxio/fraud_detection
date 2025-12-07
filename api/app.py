@@ -10,6 +10,16 @@ model = load_model()
 class Payload(BaseModel):
     data: list
 
+@app.get("/")
+async def root():
+    """Endpoint racine."""
+    return {"message": "Fraud Detection API is running", "status": "healthy"}
+
+@app.get("/health")
+async def health():
+    """Health check endpoint."""
+    return {"status": "healthy", "model_loaded": model is not None}
+
 @app.post("/predict")
 def predict(payload: Payload):
     try:
