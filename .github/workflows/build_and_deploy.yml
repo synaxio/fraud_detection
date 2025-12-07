@@ -10,228 +10,172 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
-    - name: Checkout repo
-      uses: actions/checkout@v3
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Checkout repo
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Install Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: "3.10"
+      - name: Install Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
 
-    - name: Install MLflow + boto3
-      run: pip install mlflow boto3
+      - name: Install MLflow + boto3
+        run: pip install mlflow boto3
 
-    - name: Download latest MLflow model
-      env:
-        MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
-        MLFLOW_TRACKING_TOKEN: ${{ secrets.MLFLOW_TRACKING_TOKEN }}
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
-        MLFLOW_S3_ENDPOINT_URL: ${{ secrets.MLFLOW_S3_ENDPOINT_URL }}
-    run: |
-        python - <<EOF
-        import mlflow
-        import os
-        import shutil
-        from mlflow.tracking import MlflowClient
+      - name: Download latest MLflow model
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+          MLFLOW_TRACKING_TOKEN: ${{ secrets.MLFLOW_TRACKING_TOKEN }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+          MLFLOW_S3_ENDPOINT_URL: ${{ secrets.MLFLOW_S3_ENDPOINT_URL }}
+        run: |
+          python - <<EOF
+          import mlflow
+          import os
+          import shutil
+          from mlflow.tracking import MlflowClient
 
-        EXPERIMENT_NAME = 'fraud_detector'
+          EXPERIMENT_NAME = 'fraud_detector'
 
-        # Récupérer l'expérience
-        exp = mlflow.get_experiment_by_name(EXPERIMENT_NAME)
-        exp_id = exp.experiment_id
+          # Récupérer l'expérience
+          exp = mlflow.get_experiment_by_name(EXPERIMENT_NAME)
+          exp_id = exp.experiment_id
 
-        # Chercher le dernier run réussi
-        runs = mlflow.search_runs(
-            [exp_id], 
-            filter_string="attributes.status = 'FINISHED'",        
-            order_by=["attributes.start_time DESC"],
-            max_results=1
-        )
-        
-        last_run_id = runs.iloc[0]["run_id"]
-        print(f"Last run ID: {last_run_id}")
+          # Chercher le dernier run réussi
+          runs = mlflow.search_runs(
+              [exp_id], 
+              filter_string="attributes.status = 'FINISHED'",        
+              order_by=["attributes.start_time DESC"],
+              max_results=1
+          )
+          
+          last_run_id = runs.iloc[0]["run_id"]
+          print(f"Last run ID: {last_run_id}")
 
-        # Lister les artifacts
-        client = MlflowClient()
-        
-        # Lister les artifacts à la racine
-        print("Root artifacts:")
-        artifacts = client.list_artifacts(last_run_id)
-        for a in artifacts:
-            print(f"  - {a.path}")
-        
-        # Lister le contenu de fraud_detector
-        print("\nContents of fraud_detector/:")
-        fraud_artifacts = client.list_artifacts(last_run_id, "fraud_detector")
-        for a in fraud_artifacts:
-            print(f"  - {a.path}")
+          # Lister les artifacts
+          client = MlflowClient()
+          
+          # Lister les artifacts à la racine
+          print("Root artifacts:")
+          artifacts = client.list_artifacts(last_run_id)
+          for a in artifacts:
+              print(f"  - {a.path}")
+          
+          # Lister le contenu de fraud_detector
+          print("\nContents of fraud_detector/:")
+          fraud_artifacts = client.list_artifacts(last_run_id, "fraud_detector")
+          for a in fraud_artifacts:
+              print(f"  - {a.path}")
 
-        # Supprimer le dossier précédent
-        shutil.rmtree("model", ignore_errors=True)
-        print("\nOld model directory removed.")
+          # Supprimer le dossier précédent
+          shutil.rmtree("model", ignore_errors=True)
+          print("\nOld model directory removed.")
 
-        # Télécharger fraud_detector/code
-        model_uri = f"runs:/{last_run_id}/fraud_detector/code"
-        print(f"Downloading from: {model_uri}")
-        
-        try:
-            local_path = mlflow.artifacts.download_artifacts(
-                artifact_uri=model_uri,
-                dst_path="."
-            )
-            print(f"Downloaded to: {local_path}")
-            
-            # Le chemin téléchargé sera probablement "fraud_detector/code"
-            # On doit le déplacer vers "model"
-            if os.path.exists("fraud_detector/code"):
-                shutil.move("fraud_detector/code", "model")
-                shutil.rmtree("fraud_detector", ignore_errors=True)
-                print("Moved fraud_detector/code to model/")
-            elif os.path.exists("code"):
-                shutil.move("code", "model")
-                print("Moved code to model/")
-            
-        except Exception as e:
-            print(f"Error downloading fraud_detector/code: {e}")
-            print("Trying to download entire fraud_detector folder...")
-            
-            # Plan B : télécharger tout fraud_detector
-            model_uri = f"runs:/{last_run_id}/fraud_detector"
-            local_path = mlflow.artifacts.download_artifacts(
-                artifact_uri=model_uri,
-                dst_path="."
-            )
-            
-            # Déplacer fraud_detector/code vers model
-            if os.path.exists("fraud_detector/code"):
-                shutil.move("fraud_detector/code", "model")
-                shutil.rmtree("fraud_detector", ignore_errors=True)
-            elif os.path.exists("fraud_detector"):
-                shutil.move("fraud_detector", "model")
-        
-        # Vérifier que MLmodel existe
-        if not os.path.exists("model/MLmodel"):
-            print("\n❌ MLmodel file not found!")
-            print("Contents of current directory:")
-            for item in os.listdir("."):
-                print(f"  - {item}")
-                if os.path.isdir(item):
-                    print(f"    Contents of {item}:")
-                    for subitem in os.listdir(item)[:5]:
-                        print(f"      - {subitem}")
-            raise Exception("MLmodel file not found in downloaded artifacts!")
-        
-        print("\n✓ Model downloaded successfully")
-        
-        # Afficher la structure
-        print("\n=== Final model structure ===")
-        for root, dirs, files in os.walk("model"):
-            level = root.replace("model", "").count(os.sep)
-            indent = " " * 2 * level
-            print(f"{indent}{os.path.basename(root)}/")
-            subindent = " " * 2 * (level + 1)
-            for file in files[:8]:
-                print(f"{subindent}{file}")
-            if len(files) > 8:
-                print(f"{subindent}... and {len(files) - 8} more files")
-        
-        EOF
-    
-    - name: Initialize HuggingFace Space if needed
-      env:
-        HF_TOKEN: ${{ secrets.HF_TOKEN }}
-      run: |
-        pip install huggingface_hub
-        
-        python - <<EOF
-        from huggingface_hub import HfApi
-        
-        api = HfApi(token="${{ secrets.HF_TOKEN }}")
-        repo_id = "${{ secrets.HF_USERNAME }}/api-prediction"
-        
-        try:
-            # Vérifier si le README existe
-            api.hf_hub_download(repo_id=repo_id, filename="README.md", repo_type="space")
-            print("Space déjà initialisé")
-        except:
-            print("Initialisation du Space...")
-            # Créer le README.md initial
-            readme_content = """---
-        title: API Prediction
-        emoji: 🔮
-        colorFrom: blue
-        colorTo: green
-        sdk: docker
-        app_port: 7860
-        pinned: false
-        ---
-        
-        # API Prediction
-        
-        API de prédiction déployée automatiquement via GitHub Actions.
-        """
-            api.upload_file(
-                path_or_fileobj=readme_content.encode(),
-                path_in_repo="README.md",
-                repo_id=repo_id,
-                repo_type="space",
-                token="${{ secrets.HF_TOKEN }}"
-            )
-            print("Space initialisé avec succès")
-        EOF
-    
-    - name: Login HuggingFace registry
-      run: |
-        echo "${{ secrets.HF_TOKEN }}" | docker login -u ${{ secrets.HF_USERNAME }} --password-stdin registry.hf.space
+          # Télécharger fraud_detector/code
+          model_uri = f"runs:/{last_run_id}/fraud_detector/code"
+          print(f"Downloading from: {model_uri}")
+          
+          try:
+              local_path = mlflow.artifacts.download_artifacts(
+                  artifact_uri=model_uri,
+                  dst_path="."
+              )
+              print(f"Downloaded to: {local_path}")
+              
+              # Le chemin téléchargé sera probablement "fraud_detector/code"
+              # On doit le déplacer vers "model"
+              if os.path.exists("fraud_detector/code"):
+                  shutil.move("fraud_detector/code", "model")
+                  shutil.rmtree("fraud_detector", ignore_errors=True)
+                  print("Moved fraud_detector/code to model/")
+              elif os.path.exists("code"):
+                  shutil.move("code", "model")
+                  print("Moved code to model/")
+              
+          except Exception as e:
+              print(f"Error downloading fraud_detector/code: {e}")
+              print("Trying to download entire fraud_detector folder...")
+              
+              # Plan B : télécharger tout fraud_detector
+              model_uri = f"runs:/{last_run_id}/fraud_detector"
+              local_path = mlflow.artifacts.download_artifacts(
+                  artifact_uri=model_uri,
+                  dst_path="."
+              )
+              
+              # Déplacer fraud_detector/code vers model
+              if os.path.exists("fraud_detector/code"):
+                  shutil.move("fraud_detector/code", "model")
+                  shutil.rmtree("fraud_detector", ignore_errors=True)
+              elif os.path.exists("fraud_detector"):
+                  shutil.move("fraud_detector", "model")
+          
+          # Vérifier que MLmodel existe
+          if not os.path.exists("model/MLmodel"):
+              print("\n❌ MLmodel file not found!")
+              print("Contents of current directory:")
+              for item in os.listdir("."):
+                  print(f"  - {item}")
+                  if os.path.isdir(item):
+                      print(f"    Contents of {item}:")
+                      for subitem in os.listdir(item)[:5]:
+                          print(f"      - {subitem}")
+              raise Exception("MLmodel file not found in downloaded artifacts!")
+          
+          print("\n✓ Model downloaded successfully")
+          
+          # Afficher la structure
+          print("\n=== Final model structure ===")
+          for root, dirs, files in os.walk("model"):
+              level = root.replace("model", "").count(os.sep)
+              indent = " " * 2 * level
+              print(f"{indent}{os.path.basename(root)}/")
+              subindent = " " * 2 * (level + 1)
+              for file in files[:8]:
+                  print(f"{subindent}{file}")
+              if len(files) > 8:
+                  print(f"{subindent}... and {len(files) - 8} more files")
+          
+          EOF
 
-    - name: Build image
-      run: |
-        # Vérifiez que le nom correspond EXACTEMENT à votre Space existant
-        docker build -t registry.hf.space/${{ secrets.HF_USERNAME }}/api-prediction -f docker/Dockerfile .
-
-    - name: Deploy to HuggingFace Space
-      env:
-        HF_TOKEN: ${{ secrets.HF_TOKEN }}
-      run: |
-            git config --global user.email "github-actions@github.com"
-            git config --global user.name "GitHub Actions"
-            
-            git clone https://oauth2:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/${{ secrets.HF_USERNAME }}/api-prediction space_repo
-            cd space_repo
-            
-            # Copier le Dockerfile
-            cp ../docker/Dockerfile ./Dockerfile
-            
-            # Copier le dossier model
-            rm -rf model
-            cp -r ../model ./model
-            
-            # Copier le dossier api (IMPORTANT!)
-            rm -rf api
-            cp -r ../api ./api
-            
-            # Copier requirements.txt
-            cp ../requirements.txt ./requirements.txt
-            
-            # Copier tout autre fichier nécessaire mentionné dans votre Dockerfile
-            # Par exemple, si vous avez un main.py, app.py, etc.
-            # cp ../main.py ./main.py
-            
-            cat > README.md <<'EOL'
-            ---
-            title: API Prediction
-            emoji: 🔮
-            colorFrom: blue
-            colorTo: green
-            sdk: docker
-            app_port: 7860
-            pinned: false
-            ---
-            EOL
-            
-            git add .
-            git diff --staged --quiet || (git commit -m "Deploy from GitHub Actions - $(date '+%Y-%m-%d %H:%M:%S')" && git push)
+      - name: Deploy to HuggingFace Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          git config --global user.email "github-actions@github.com"
+          git config --global user.name "GitHub Actions"
+          
+          git clone https://oauth2:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/${{ secrets.HF_USERNAME }}/api-prediction space_repo
+          cd space_repo
+          
+          # Copier le Dockerfile
+          cp ../docker/Dockerfile ./Dockerfile
+          
+          # Copier le dossier model
+          rm -rf model
+          cp -r ../model ./model
+          
+          # Copier le dossier api
+          rm -rf api
+          cp -r ../api ./api
+          
+          # Copier requirements.txt
+          cp ../requirements.txt ./requirements.txt
+          
+          cat > README.md <<'EOL'
+          ---
+          title: API Prediction
+          emoji: 🔮
+          colorFrom: blue
+          colorTo: green
+          sdk: docker
+          app_port: 7860
+          pinned: false
+          ---
+          EOL
+          
+          git add .
+          git diff --staged --quiet || (git commit -m "Deploy from GitHub Actions - $(date '+%Y-%m-%d %H:%M:%S')" && git push)
