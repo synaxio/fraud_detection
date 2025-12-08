@@ -47,6 +47,21 @@ if __name__ == "__main__":
     print('- Load Data')
     df = data_loader.load_data()
 
+    count_class_0, count_class_1 = df['is_fraud'].value_counts()
+
+    df_class_0 = df[df['is_fraud'] == 0]
+    df_class_1 = df[df['is_fraud'] == 1]
+
+    # Sous-échantillonnage de la classe 0 (on la réduit au même nombre que la classe 1)
+    df_class_0_under = df_class_0.sample(count_class_1, random_state=42)
+
+    # Concaténer les deux classes équilibrées
+    df_balanced = pd.concat([df_class_0_under, df_class_1])
+
+    # Mélanger les données pour avoir un ordre aléatoire
+    df = df_balanced.sample(frac=1, random_state=42).reset_index(drop=True)
+
+
     # ------- Preprocessing --------------------------------------------------------
     print('- Preprocessing Data')
     preprocessor = preprocessing.create_preprocessor()

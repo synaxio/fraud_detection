@@ -26,7 +26,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest mlflow pandas
+          pip install pytest mlflow pandas evidently
 
       - name: Export env vars
         run: |
@@ -44,6 +44,34 @@ jobs:
       - name: Run pytest
         run: |
           pytest tests/ --maxfail=1 --disable-warnings -v --junitxml=report.xml
+
+      - name: Run ML tests with Evidently
+        run: |
+          python - <<EOF
+          from evidently.test_suite import TestSuite
+          from evidently.tests import *
+
+          import pandas as pd
+
+          # load past reference data
+          reference = pd.read_csv("data/reference.csv")
+          # load new dataset to validate
+          current = pd.read_csv("data/current.csv")
+
+          suite = TestSuite(tests=[
+              TestNumberOfColumns(),
+              TestNumberOfRows(),
+              TestMeanIncreased(),  # exemple
+              TestColumnDrift(column_name="amt"),
+          ])
+
+          suite.run(reference_data=reference, current_data=current)
+          suite.raise_for_errors()
+          EOF
+
+
+
+
 
 
   build-deploy:
