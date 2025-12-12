@@ -15,7 +15,7 @@ app = FastAPI(
 model = load_model("/app/model")
 
 class DataRow(BaseModel):
-    cc_num: int
+    cc_num: float
     merchant: str
     category: str
     amt: float
@@ -25,16 +25,16 @@ class DataRow(BaseModel):
     street: str
     city: str
     state: str
-    zip: int
+    zip: float
     lat: float
     long: float
-    city_pop: int
+    city_pop: float
     job: str
     dob: str
     trans_num: str
     merch_lat: float
     merch_long: float
-    is_fraud: int
+    is_fraud: float
     current_time: str
 
 class Payload(BaseModel):
