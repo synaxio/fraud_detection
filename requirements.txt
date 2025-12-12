@@ -13,3 +13,4 @@ ipykernel
 jupyterlab
 seaborn
 geopy
+imblearn

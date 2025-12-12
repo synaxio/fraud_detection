@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY api /app/api
 COPY requirements.txt /app/requirements.txt
 
+RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy model artifacts (downloaded by GitHub before build)

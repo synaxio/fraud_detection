@@ -3,26 +3,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.impute import SimpleImputer
+
 from sklearn.preprocessing import StandardScaler, LabelEncoder, FunctionTransformer, OneHotEncoder
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.svm import SVC
-from sklearn.metrics import (classification_report, confusion_matrix, 
-                             roc_auc_score, roc_curve, f1_score, auc,
-                             precision_score, recall_score, precision_recall_curve,
-                             )
-from sklearn.utils import resample
-from imblearn.over_sampling import SMOTE
-from imblearn.under_sampling import RandomUnderSampler
-from imblearn.pipeline import Pipeline as ImbPipeline
 
-from xgboost import XGBClassifier
-
-from geopy.distance import geodesic
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -110,8 +97,12 @@ def create_preprocessing_pipeline():
         "hour_sin", "hour_cos", 'age', 'cb_len'
     ]
 
+    # categorical_cols = [
+    #     "gender", "category", 'job', "day_of_week", "is_weekend", 'hour'
+    # ]
+
     categorical_cols = [
-        "gender", "category", 'job', "day_of_week", "is_weekend", 'hour'
+         "category" #, "gender", 'job', "day_of_week", "is_weekend", 'hour'
     ]
     
     # ✅ ColumnTransformer qui s'applique APRÈS le feature engineering
@@ -131,29 +122,114 @@ def create_preprocessing_pipeline():
 
     return full_pipeline
 
+class FeatureBuilderAndEncoder(BaseEstimator, TransformerMixin):
+    def __init__(self):
+        self.num_cols = None
+        self.cat_cols = None
+        
+        self.num_pipeline = Pipeline([
+                ("imputer", SimpleImputer(strategy="median")),
+                ("scaler", StandardScaler())
+            ])
+
+        self.cat_pipeline = Pipeline([
+            ("imputer", SimpleImputer(strategy="most_frequent")),
+            ("onehot", OneHotEncoder(handle_unknown="ignore"))
+        ])
+
+    def create_features(self, X):
+
+        def compute_distance(X):
+            lat1 = X['lat']; lon1 = X['long']
+            lat2 = X['merch_lat']; lon2 = X['merch_long']
+            R = 6371
+            phi1, phi2 = np.radians(lat1), np.radians(lat2)
+            d_phi = np.radians(lat2 - lat1)
+            d_lambda = np.radians(lon2 - lon1)
+            a = np.sin(d_phi/2)**2 + np.cos(phi1)*np.cos(phi2)*np.sin(d_lambda/2)**2
+            c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1-a))
+            #return pd.DataFrame({'distance': c * R})
+            return c * R
+
+        X = X.copy()
+
+        X['current_time'] = pd.to_datetime(X['current_time'], errors="coerce")
+        X["dob"] = pd.to_datetime(X["dob"], errors="coerce")
+
+        # Conversion des colonnes int en float
+        X = X.astype({col: "float64" for col in X.select_dtypes(["int", "int64"]).columns})
+
+        # 🔵 Exemples de colonnes numériques dérivées
+        # distance entre lieu de transaction et position du marchand
+        X['distance'] = compute_distance(X)
+        
+        # age du client
+        today = pd.Timestamp.today()
+        X["age"] = (today - X['dob']).dt.days // 365
+        #X['age']= [pd.to_numeric(2025 - pd.to_datetime(X['dob']).dt.year)]
+        
+        X['cb_len'] = [len(str(int(s))) for s in X['cc_num']]
+
+        # heure de la transaction
+        X['transaction_hour'] = X['current_time'].dt.hour
+
+        # 🔴 Exemple de colonne catégorielle dérivée
+        #X['author']= X['first'].astype(str) + '_' + X['last'].astype(str) + '_' + X['gender'].astype(str)
+
+        # Extraction temporelle
+        X['hour'] = X['current_time'].dt.hour
+        X['day_of_week'] = X['current_time'].dt.dayofweek.astype("object")
+        X['is_weekend'] = X['day_of_week'].isin([5, 6]).astype(int).astype("object")
+        
+        # Encodage cyclique des heures
+        X['hour_sin'] = np.sin(2 * np.pi * X['hour'] / 24)
+        X['hour_cos'] = np.cos(2 * np.pi * X['hour'] / 24)
+        X['hour'] = X['hour'].astype("object")
+
+        # Colonnes à dropper après création des features
+        drop_cols = ['first', 'last', 'gender', 'cc_num', 'merchant', 'street', 'city', 'state', 'zip', 'city_pop','job', 'trans_num', 'current_time', 'lat', 'long', 'merch_lat', 'merch_long', 'dob'] #, 'file', 'date_part']
+        X = X.drop(columns=drop_cols)
+
+        return X
+
+    def fit(self, X, y=None):
+        X = self.create_features(X)
+
+        # ⚡ Détection automatique des types
+        self.num_cols = X.select_dtypes(include=['int64', 'float64']).columns.tolist()
+        self.cat_cols = X.select_dtypes(include=['object', 'category']).columns.tolist()
+
+        # Fit scaler + encoder
+        self.num_pipeline.fit(X[self.num_cols])
+        self.cat_pipeline.fit(X[self.cat_cols])
+
+        return self
+
+    def transform(self, X):
+        X = self.create_features(X)
+
+        X_num = self.num_pipeline.transform(X[self.num_cols])
+        X_cat = self.cat_pipeline.transform(X[self.cat_cols]).toarray()
+
+        num_feature_names = self.num_cols
+
+        # noms des colonnes catégorielles après OneHot
+        ohe = self.cat_pipeline.named_steps["onehot"]
+        cat_feature_names = ohe.get_feature_names_out(self.cat_cols).tolist()
+
+        # concaténation
+        all_cols = num_feature_names + cat_feature_names
+
+        X_final = pd.DataFrame(
+            np.hstack([X_num, X_cat]),
+            columns=all_cols
+        )
+
+        # # Concaténation
+        # X_final = pd.DataFrame(np.hstack([X_num, X_cat]), columns=self.num_cols + self.cat_cols)
+
+        return X_final
     
-# def transform_data(df : pd.DataFrame, test_size=0.2, random_state=42, stratify=None):
-#     print("Création du pipeline de preprocessing...")
-#     pipeline = create_preprocessing_pipeline()
-
-#     # --- Séparation train/test AVANT toute transformation ---
-#     X = df.drop(columns=["is_fraud"])
-#     y = df["is_fraud"]
-
-#     X_train, X_test, y_train, y_test = train_test_split(
-#         X, y,
-#         test_size=test_size,
-#         random_state=random_state,
-#         stratify=stratify
-#     )
-
-#     # Fit sur le TRAIN
-#     X_train = pipeline.fit_transform(X_train)
-
-#     # Transform simple sur le TEST
-#     X_test = pipeline.transform(X_test)
-
-#     return X_train, X_test, y_train, y_test
-
-# def create_transformers():   
-#     return FeatureEngineeringTransformer(), CategoricalEncoderTransformer()
+def create_preprocessor():   
+    #return basic_preprocessor() 
+    return FeatureBuilderAndEncoder()
