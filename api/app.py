@@ -14,8 +14,31 @@ app = FastAPI(
 # Charger le modèle au démarrage avec le chemin absolu
 model = load_model("/app/model")
 
+class DataRow(BaseModel):
+    cc_num: int
+    merchant: str
+    category: str
+    amt: float
+    first: str
+    last: str
+    gender: str
+    street: str
+    city: str
+    state: str
+    zip: int
+    lat: float
+    long: float
+    city_pop: int
+    job: str
+    dob: str
+    trans_num: str
+    merch_lat: float
+    merch_long: float
+    is_fraud: int
+    current_time: str
+
 class Payload(BaseModel):
-    data: list
+    data: List[DataRow]
 
 @app.get("/")
 async def root():
