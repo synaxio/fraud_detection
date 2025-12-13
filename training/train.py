@@ -63,7 +63,7 @@ model_configs = {
         #                                     },
         #                                 grid_search= True
         #                                 ),
-        'Random Forest' : ModelDef(RandomForestClassifier(class_weight='balanced', n_estimators=100, random_state=42),
+        'Random Forest' : ModelDef(RandomForestClassifier(class_weight='balanced', n_estimators=1, max_depth=None, min_samples_split=2,min_samples_leaf=2, random_state=42),
                                    name= 'Random Forest',
                                    grid_params= None,
                                    grid_search= False
@@ -113,13 +113,15 @@ if __name__ == "__main__":
     mlflow.set_experiment(EXPERIMENT_NAME)
     experiment = mlflow.get_experiment_by_name(EXPERIMENT_NAME)
     
-    model_definition = model_configs['Random Forest']
+    #model_definition = model_configs['Random Forest']
+    model_definition = model_configs['XGBoost']
+    
 
     mlflow.sklearn.autolog(log_models=False) # We won't log models right away
 
     # ------- Load Data --------------------------------------------------------
     print('- Load Data')
-    df = data_loader.load_data()
+    df = data_loader.load_data(20)
 
     # ------- Preprocessing --------------------------------------------------------
     print('- Preprocessing Data')
@@ -134,25 +136,26 @@ if __name__ == "__main__":
     )
 
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--n_estimators", default=1)
-    parser.add_argument("--max_depth", default=None)
-    parser.add_argument("--min_samples_split", default=2)
-    parser.add_argument("--min_sample_leaf", default=2)
-    parser.add_argument("--class_weight", default={0: 1, 1: 1})
-    args = parser.parse_args([])
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument("--n_estimators", default=1)
+    # parser.add_argument("--max_depth", default=None)
+    # parser.add_argument("--min_samples_split", default=2)
+    # parser.add_argument("--min_sample_leaf", default=2)
+    # parser.add_argument("--class_weight", default={0: 1, 1: 1})
+    # args = parser.parse_args([])
 
-    print('- Model hyperparams')   
-    classifier = RandomForestClassifier(
-        n_estimators=int(args.n_estimators),
-        max_depth=None if args.max_depth is None else int(args.max_depth),
-        min_samples_split=int(args.min_samples_split),
-        min_samples_leaf=int(args.min_sample_leaf),
-        class_weight=args.class_weight,
-        random_state=42
-    )    
+    # print('- Model hyperparams')   
+    # classifier = RandomForestClassifier(
+    #     n_estimators=int(args.n_estimators),
+    #     max_depth=None if args.max_depth is None else int(args.max_depth),
+    #     min_samples_split=int(args.min_samples_split),
+    #     min_samples_leaf=int(args.min_sample_leaf),
+    #     class_weight=args.class_weight,
+    #     random_state=42
+    # )    
 
-    #classifier = model_definition.classifier
+
+    classifier = model_definition.classifier
 
     print('- Model Pipeline')
     model = Pipeline(steps=[
@@ -176,7 +179,7 @@ if __name__ == "__main__":
         mlflow.sklearn.log_model(
             sk_model=model,
             artifact_path=EXPERIMENT_NAME,
-            registered_model_name="RandomForestClassifier_FraudDetection",
+            registered_model_name=model_definition.name,
             signature=infer_signature(X_train, predictions),
             code_paths=["training/preprocessing.py"]
         )

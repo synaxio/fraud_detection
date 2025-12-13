@@ -1,13 +1,14 @@
 
 
 from data_loader import load_data
-from preprocessing import create_preprocessing_pipeline
+from preprocessing import create_preprocessing_pipeline, create_preprocessor
 
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+from sklearn.pipeline import Pipeline
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
@@ -40,51 +41,6 @@ class FraudDataAnalyse:
         # self.y_train = None
         # self.y_test = None
         
-
-    # def __init_data(self, test_size=0.2, random_state=42):
-
-    #     pipeline = create_preprocessing_pipeline()
-
-    #     # --- Séparation train/test AVANT toute transformation ---
-    #     X = self.df.drop(columns=["is_fraud"])
-    #     y = self.df["is_fraud"]
-
-    #     X_train, X_test, y_train, y_test = train_test_split(
-    #         X, y,
-    #         test_size=test_size,
-    #         random_state=random_state            
-    #     )
-
-    #     # Fit sur le TRAIN
-    #     X_train = pipeline.fit_transform(X_train)
-
-    #     # Transform simple sur le TEST
-    #     X_test = pipeline.transform(X_test)
-
-    #     # --- Équilibrage des classes (sur train uniquement) ---
-    #     if self.balance_method == 'undersample':
-    #         rus = RandomUnderSampler(random_state=random_state)
-    #         X_train, y_train = rus.fit_resample(X_train, y_train)
-    #         print(f"Sous-échantillonnage appliqué : {len(y_train)} échantillons")
-
-    #     elif self.balance_method == 'oversample':
-    #         smote = SMOTE(random_state=random_state)
-    #         X_train, y_train = smote.fit_resample(X_train, y_train)
-    #         print(f"SMOTE appliqué : {len(y_train)} échantillons")
-
-    #     # --- Stockage ---
-    #     self.X_train = X_train
-    #     self.X_test = X_test
-    #     self.y_train = y_train
-    #     self.y_test = y_test
-
-    #     print(f"\nExpérience : {self.experiment_name}")
-    #     print(f"Méthode d'équilibrage : {self.balance_method}")
-    #     print(f"Shape train : {X_train.shape}")
-    #     print(f"Shape test :  {X_test.shape}")
-    #     print(f"Distribution train : {y_train.value_counts().to_dict()}")
-
-    #     return X_train, X_test, y_train, y_test
         
     def basic_statistics(self):
         """Affiche les statistiques générales du dataframe"""
@@ -219,11 +175,14 @@ class FraudModel:
         use_gridsearch : bool
             Utiliser GridSearch pour l'optimisation
         """
-        self.base_model = model
+        #self.base_model = model
         self.model_name = model_name
         self.grid_params = grid_params
         self.use_gridsearch = use_gridsearch
-        self.model = None
+        self.base_model = Pipeline(steps=[
+                ('preprocessor', create_preprocessor()),
+                ('classifier', model)
+                ])
         self.results = {}
         
     def train(self, X_train, y_train, X_test, y_test):
@@ -446,11 +405,11 @@ model_configs = [
             'model': LogisticRegression(random_state=42),
             'model_name': 'Logistic Regression (GridSearch)',
             'grid_params': {
-                'C': [0.1, 1, 10],
-                'penalty': ['l1', 'l2'],
-                'solver': ['liblinear'],
-                'max_iter': [1000],
-                'class_weight': [{0:1, 1:1}, {0:5, 1:5}, {0:0.1, 1:10}]
+                'classifier__C': [0.1, 1, 10],
+                'classifier__penalty': ['l1', 'l2'],
+                'classifier__solver': ['liblinear'],
+                'classifier__max_iter': [1000],
+                'classifier__class_weight': [{0:1, 1:1}, {0:5, 1:5}, {0:0.1, 1:10}]
             },
             'use_gridsearch': True
         },
@@ -464,29 +423,26 @@ model_configs = [
             'model': RandomForestClassifier(random_state=42),
             'model_name': 'Random Forest (GridSearch)',
             'grid_params': {
-                'n_estimators': [2,50,100, 200],
-                'max_depth': [10, 20, None],
-                'min_samples_split': [2, 5],
-                'class_weight': [{0:1, 1:1}, {0:5, 1:5}, {0:0.1, 1:10}]
+                'classifier__n_estimators': [100, 200, 300],
+                'classifier__max_depth': [10, 20, None],
+                'classifier__min_samples_split': [2, 5, 10]
+                #'classifier__class_weight': [{0:1, 1:1}, {0:5, 1:5}, {0:0.1, 1:10}]
             },
             'use_gridsearch': True
         },
         {
-            'model': XGBClassifier(class_weight='balanced', n_estimators=100, objective='binary:logistic', random_state=42),
+            'model': XGBClassifier(n_estimators=200,  random_state=42, eval_metric='aucpr',  tree_method='hist' , scale_pos_weight='balanced'),
             'model_name': 'XGBoost',
             'grid_params': None,
             'use_gridsearch': False
         },
         {
-            'model': XGBClassifier(n_estimators=100, objective='binary:logistic', random_state=42),
+            'model': XGBClassifier(n_estimators=200,  random_state=42, eval_metric='aucpr',  tree_method='hist' ),
             'model_name': 'XGBoost (GridSearch)',
             'grid_params': {
-                'max_depth': [3, 5, 7],
-                'min_child_weight': [1, 3, 5],
-                'subsample': [0.6, 0.8, 1.0],
-                'colsample_bytree': [0.6, 0.8, 1.0],
-                'learning_rate': [0.01, 0.1, 0.3],
-                'class_weight': [{0:1, 1:1}, {0:5, 1:5}, {0:0.1, 1:10}]
+                'classifier__max_depth': [3, 5, 7],
+                'classifier__scale_pos_weight': [10, 50, 100],
+                'classifier__learning_rate': [0.01, 0.1, 0.3]
             },
             'use_gridsearch': True
         }
@@ -496,12 +452,12 @@ model_configs = [
 #model_configs = {k: v for k, v in model_configs.items() if k in ['Logistic Regression', 'Random Forest', 'SVM']}
 #model_configs = [model_configs[i] for i in [4,2,0]]
 #model_configs = [model_configs[i] for i in [0,2,4]]
-model_configs = [model_configs[i] for i in [3,5]]
+model_configs = [model_configs[i] for i in [2,3,4,5]]
 
 def main():
     
     # Chargement des données
-    df = load_data(20 )
+    df = load_data()
     
 
 
@@ -518,28 +474,14 @@ def main():
     
     # Etape 2: Preprocessing
     print('- Preprocessing Data')
-    preprocessor = create_preprocessing_pipeline()
+
+    preprocessor = create_preprocessor()
 
     X = df.drop(columns=["is_fraud"])
     y = df["is_fraud"].astype(int)
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 
-    # Fit sur le TRAIN
-    X_train = preprocessor.fit_transform(X_train)
-
-    # Transform simple sur le TEST
-    X_test = preprocessor.transform(X_test)
-
-    # Étape 2: Préparation des données avec équilibrage
-    # print("\n" + "="*60)
-    # print("PHASE 2: PRÉPARATION DES DONNÉES")
-    # print("="*60)
-    
-    # X_train, X_test, y_train, y_test = experiment.prepare_data(
-    #     balance_method='weighted'  # Options: 'none', 'weighted', 'undersample', 'oversample'
-    # )
-    
     # Étape 3: Configuration et entraînement des modèles
     print("\n" + "="*60)
     print("PHASE 3: ENTRAÎNEMENT DES MODÈLES")

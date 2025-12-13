@@ -59,10 +59,10 @@ async def health():
     }
 
 @app.post("/predict")
-def predict(data: List[dict]):
+def predict(payload: List[DataRow]):
     """Endpoint de prédiction."""
     try:
-        df = pd.DataFrame(data)
+        df = pd.DataFrame([row.dict() for row in payload])
         preds = model.predict(df)
         #return {"predictions": preds.to_dict(orient='records')}
         return {"predictions": preds.tolist()}
