@@ -37,6 +37,7 @@ Il y a en permanence un modèle "candidat" en parallèle du modèle déployé su
 un scoring des deux modèles est fait sur un jeu de données récentes et labelisées. Le meilleur des <br>
 deux modèles est déployé sur l'API, le second est réentrainé sur les données les plus récentes et <br>
 devient "candidat", en attente d'un nouveau scoring.
+
 <img width="915" height="753" alt="image" src="https://github.com/user-attachments/assets/397d8db4-9d14-4092-aad4-7380370008cf" />
 
 Une intervention manuelle sur un nouveau modèle a pour conséquence de remplacer le candidat actuel.
@@ -45,6 +46,7 @@ Une intervention manuelle sur un nouveau modèle a pour conséquence de remplace
    #### ETL
    L'API devrait être consommée chaque fois qu'un topic pousserait une nouvelle transaction. Dans ce projet, le topic est remplacé par un script déployé via un docker local. Ce srcipt récupère en permanence les nouvelles transactions émises et les soumet par paquet à l'API. Tant que l'API ne répond pas (code 200), le paquet de transaction continue d'augmenter et ne se vide que quand une sanction a été donnée.
    Les transactions qui ont été évaluées sont stockées dans une base NeonDB.
+   
 <img width="491" height="163" alt="image" src="https://github.com/user-attachments/assets/07af54af-0fe1-4242-8eb0-6297df99e87c" />
 
 ### III. Visualisation des résultats
@@ -52,6 +54,7 @@ Une intervention manuelle sur un nouveau modèle a pour conséquence de remplace
 
 Les données sont exposées via un serveur Streamlit hébergé sur HuggingFace
 https://synaxio-dashboard.hf.space
+
 <img width="635" height="524" alt="image" src="https://github.com/user-attachments/assets/41925c6b-9cfa-497a-970d-1a2fe622c5f6" />
 
 
