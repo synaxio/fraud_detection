@@ -1,0 +1,11 @@
+boto3
+mlflow==2.21.3
+requests>=2.31.0,<3
+pandas 
+gunicorn
+psycopg2-binary
+python-dotenv
+psutil
+seaborn
+geopy
+imblearn

@@ -90,7 +90,8 @@ class FraudDataAnalyse:
         plt.xticks(rotation=0)
         
         plt.tight_layout()
-        plt.show()
+        plt.show(block=False)
+        plt.pause(0.001)
         
         print(f"Pourcentage de fraudes: {(fraud_counts[1] / fraud_counts.sum()) * 100:.2f}%")
     
@@ -105,7 +106,8 @@ class FraudDataAnalyse:
                     center=0, square=True, fmt='.2f')
         plt.title('Matrice de Corrélation des Variables Numériques')
         plt.tight_layout()
-        plt.show()
+        plt.show(block=False)
+        plt.pause(0.001)
         
         fraud_corr = corr_matrix['is_fraud'].abs().sort_values(ascending=False)
         print("\nCorrélations avec is_fraud (valeur absolue):")
@@ -155,7 +157,8 @@ class FraudDataAnalyse:
         plt.xlabel('Heure du Jour')
         
         plt.tight_layout()
-        plt.show()
+        plt.show(block=False)
+        plt.pause(0.001)
 
 class FraudModel:
     """
@@ -277,7 +280,8 @@ class FraudModel:
         ax.set_yticklabels(['Non-Fraude', 'Fraude'])
         
         plt.tight_layout()
-        plt.show()
+        plt.show(block=False)
+        plt.pause(0.001)
     
     def get_metrics_dict(self):
         """Retourne un dictionnaire avec toutes les métriques"""
@@ -387,7 +391,8 @@ class ModelComparator:
         ax.grid(True, alpha=0.3, axis='y')
         
         plt.tight_layout()
-        plt.show()
+        plt.show(block=False)
+        plt.pause(0.001)
 
 
 
@@ -451,13 +456,14 @@ model_configs = [
        
 #model_configs = {k: v for k, v in model_configs.items() if k in ['Logistic Regression', 'Random Forest', 'SVM']}
 #model_configs = [model_configs[i] for i in [4,2,0]]
-#model_configs = [model_configs[i] for i in [0,2,4]]
-model_configs = [model_configs[i] for i in [2,3,4,5]]
+model_configs = [model_configs[i] for i in [0,2,4]]
+#model_configs = [model_configs[i] for i in [2,3,4,5]]
+#model_configs = [model_configs[i] for i in [2,4]]
 
 def main():
     
     # Chargement des données
-    df = load_data()
+    df = load_data(20)
     
 
 
@@ -511,3 +517,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    input("Appuie sur Entrée pour fermer les plots...")
