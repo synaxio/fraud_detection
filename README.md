@@ -58,15 +58,28 @@ https://synaxio-dashboard.hf.space
 ## Structure du dossier
 <pre markdown="1">
 │
-├── Huggingface/
-│   ├── MLFlow-Server/
+├── .github/
+│   └── workflows/
+│       └── build_and_deploy.yml        # configuration GitAction  
+│
+├── Huggingface/                        # contenu des spaces sur Hugging face
+│   ├── MLFlow-Server/                  # serveur MLflow
 │   │   ├── Dockerfile
 │   │   └── requirements.txt
 │   │
-│   └── Streamlit/
+│   └── Streamlit/                      # app streamlit pour la visualisation des données
 │       ├── Dockerfile
 │       ├── app.py
 │       └── requirements.txt
+│
+├── docker/
+│   └── Dockerfile                      # Dockerfile spécifique utilisé par GitActions, couplé avec requirements.txt à la racine
+│  
+├── docker_automate/
+│   ├── __init__.py
+│   ├── app.py
+│   ├── Dockerfile
+│   └── requirements.txt
 │  
 ├── etl/
 │   ├── __init__.py
