@@ -75,13 +75,13 @@ https://synaxio-dashboard.hf.space
 ├── docker/
 │   └── Dockerfile                      # Dockerfile spécifique utilisé par GitActions, couplé avec requirements.txt à la racine
 │  
-├── docker_automate/
+├── docker_automate/                    # Contient une app qui va simuler la consommation régulière de l'API
 │   ├── __init__.py
 │   ├── app.py
 │   ├── Dockerfile
 │   └── requirements.txt
 │  
-├── etl/
+├── etl/                                # Les fonctions qui permettent de se connecter à l'API qui fournit les transactions, au S3, à la base Neon. Simule un etl basique
 │   ├── __init__.py
 │   ├── app.py
 │   ├── data_save.py
@@ -90,11 +90,24 @@ https://synaxio-dashboard.hf.space
 │   ├── requirements.txt
 │   └── transform.py
 │
-├── training/
+├── monitoring/                          # monitoring des modèles (TODO)
 │   ├── __init__.py
-│   ├── data_loader.py
-│   ├── preprocessing.py
-│   └── train.py
+│   ├── drift_monitor.py
+│   └── scoring.py
+│
+├── tests/                               # Tests du code (A compléter)
+│   ├── __init__.py
+│   ├── test_api_etl.py
+│   ├── test_etl.py
+│   ├── test_model.py
+│   └── test_training.py
+│
+├── training/                            # Entrainement du modèle
+│   ├── __init__.py
+│   ├── analyse.py                       # Choix de modèle, comparaison, grid search...
+│   ├── data_loader.py                   # données d'entrainement
+│   ├── preprocessing.py                 # pipelilne préparation
+│   └── train.py                         # entrainement du modèle et enregistrement MLFlow
 │
 ├── README.md
 └── requirements.txt
@@ -104,6 +117,6 @@ https://synaxio-dashboard.hf.space
 
 MLFlow & Streamlit: hébergé sur Huggingface dans des Spaces séparés dans lequels il suffit d'intégrer les credentials nécessaire pour se connecter sur le bucket S3 et la base NeonDB
 
-etl: fonctionne dans un docker local, a juste besoin des credentials pour connection à S3, NeondDB et le serveur MLFlow
+api: un espace est créé sur huggingface, mais c'est gitactions qui va créer les éléments nécessaires au dépôt en fonction du modèle retenu
 
 training: lancé directement depuis VSCode, nécessite les crédentials pour MLFlow
