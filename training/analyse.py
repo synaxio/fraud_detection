@@ -431,7 +431,7 @@ model_configs = [
             'use_gridsearch': True
         },
         {
-            'model': XGBClassifier(n_estimators=200,  random_state=42, eval_metric='aucpr',  tree_method='hist' , scale_pos_weight='balanced'),
+            'model': XGBClassifier(n_estimators=200,  random_state=42, eval_metric='aucpr',  tree_method='hist' ),
             'model_name': 'XGBoost',
             'grid_params': None,
             'use_gridsearch': False

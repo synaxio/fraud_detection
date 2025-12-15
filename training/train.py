@@ -79,7 +79,7 @@ model_configs = {
         #                                         grid_search= True
         #                                         ),
 
-        'XGBoost': ModelDef(classifier= XGBClassifier(class_weight='balanced', n_estimators=100, objective='binary:logistic', random_state=42),
+        'XGBoost': ModelDef(classifier= XGBClassifier(n_estimators=200,  random_state=42, eval_metric='aucpr',  tree_method='hist', learning_rate= 0.3, scale_pos_weight= 100),
                             name= 'XGBoost',
                             grid_params= None,
                             grid_search= False),
@@ -121,7 +121,7 @@ if __name__ == "__main__":
 
     # ------- Load Data --------------------------------------------------------
     print('- Load Data')
-    df = data_loader.load_data(20)
+    df = data_loader.load_data()
 
     # ------- Preprocessing --------------------------------------------------------
     print('- Preprocessing Data')
@@ -135,26 +135,6 @@ if __name__ == "__main__":
         X, y, test_size=0.2, random_state=42, stratify=y
     )
 
-
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument("--n_estimators", default=1)
-    # parser.add_argument("--max_depth", default=None)
-    # parser.add_argument("--min_samples_split", default=2)
-    # parser.add_argument("--min_sample_leaf", default=2)
-    # parser.add_argument("--class_weight", default={0: 1, 1: 1})
-    # args = parser.parse_args([])
-
-    # print('- Model hyperparams')   
-    # classifier = RandomForestClassifier(
-    #     n_estimators=int(args.n_estimators),
-    #     max_depth=None if args.max_depth is None else int(args.max_depth),
-    #     min_samples_split=int(args.min_samples_split),
-    #     min_samples_leaf=int(args.min_sample_leaf),
-    #     class_weight=args.class_weight,
-    #     random_state=42
-    # )    
-
-
     classifier = model_definition.classifier
 
     print('- Model Pipeline')
@@ -165,6 +145,7 @@ if __name__ == "__main__":
 
     print('- Log experiment to MLFlow')
     with mlflow.start_run(experiment_id = experiment.experiment_id) as run:
+        mlflow.set_tag('type', 'candidat')
         print('   - fit')
         model.fit(X_train, y_train)
         print('   - predict')
@@ -183,47 +164,3 @@ if __name__ == "__main__":
             signature=infer_signature(X_train, predictions),
             code_paths=["training/preprocessing.py"]
         )
-
-
-    # # ✅ Créer UNE SEULE run avec tout le contrôle
-    # with mlflow.start_run(experiment_id=experiment.experiment_id, run_name=model_definition.name) as run:
-        
-    #     # ✅ Activer autolog DANS le contexte de la run
-    #     mlflow.sklearn.autolog(
-    #         log_models=False,  # On va logger manuellement pour avoir le contrôle
-    #         log_input_examples=False,
-    #         log_model_signatures=False
-    #     )
-        
-    #     print('- Model Training')
-    #     model = Pipeline(steps=[
-    #         ('preprocessor', preprocessor),
-    #         ('classifier', model_definition.classifier)
-    #     ])
-        
-    #     # Le fit() loggera automatiquement les params et metrics
-    #     model.fit(X_train, y_train)
-
-    #     print('- Predict & Evaluate')
-    #     predictions = model.predict(X_test)
-    #     test_score = model.score(X_test, y_test)
-        
-    #     # Logs additionnels si besoin
-    #     mlflow.log_metric("test_score", test_score)
-    #     mlflow.log_param("test_size", 0.2)
-
-    #     print('- Log model avec tous les paramètres personnalisés')
-    #     mlflow.sklearn.log_model(
-    #         sk_model=model,
-    #         artifact_path=EXPERIMENT_NAME,  # ✅ Nom de l'artifact path
-    #         registered_model_name=model_definition.name,  # ✅ Nom dans le Registry
-    #         signature=infer_signature(X_train, predictions),  # ✅ Signature
-    #         code_paths=["training/preprocessing.py"],  # ✅ Votre code sauvegardé
-    #         input_example=X_train.iloc[:5]  # ✅ Exemple d'input (optionnel)
-    #     )
-        
-    #     # ✅ Logger des fichiers additionnels si besoin
-    #     mlflow.log_artifact("training/preprocessing.py", artifact_path="code")
-        
-    #     print(f"✅ Run ID: {run.info.run_id}")
-    #     print(f"✅ Model registered as: {model_definition.name}")
